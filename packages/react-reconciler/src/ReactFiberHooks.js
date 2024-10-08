@@ -499,8 +499,8 @@ function areHookInputsEqual(
 }
 
 export function renderWithHooks<Props, SecondArg>(
-  current: Fiber | null,
-  workInProgress: Fiber,
+  current: Fiber | null, // 업데이트 전 (현재 렌더링 중인 화면의 hook 정보들)
+  workInProgress: Fiber, // 새로 업데이트 하기 위해 필요한 hook 정보들
   Component: (p: Props, arg: SecondArg) => any,
   props: Props,
   secondArg: SecondArg,
@@ -521,7 +521,7 @@ export function renderWithHooks<Props, SecondArg>(
 
     warnIfAsyncClientComponent(Component);
   }
-
+  // 이런게 있다 정도 기억
   workInProgress.memoizedState = null;
   workInProgress.updateQueue = null;
   workInProgress.lanes = NoLanes;
@@ -996,7 +996,7 @@ function mountWorkInProgressHook(): Hook {
 
     next: null,
   };
-
+  // Linked List -> 알고리즘
   if (workInProgressHook === null) {
     // This is the first hook in the list
     currentlyRenderingFiber.memoizedState = workInProgressHook = hook;
