@@ -2927,8 +2927,8 @@ function commitRoot(
   completedRenderStartTime: number, // Profiling-only
   completedRenderEndTime: number, // Profiling-only
 ) {
-  // TODO: This no longer makes any sense. We already wrap the mutation and
-  // layout phases. Should be able to remove.
+  // TODO: 더 이상 필요한 내용은 아니다. 이미 mutation과 layout phase에서 해당 로직
+  // 관리해주고 있기 때문에 삭제해야 하는 로직이다. (원문 주석을 번역한 내용)
   const prevTransition = ReactSharedInternals.T;
   const previousUpdateLanePriority = getCurrentUpdatePriority();
   try {
@@ -2975,6 +2975,7 @@ function commitRootImpl(
     // flush synchronous work at the end, to avoid factoring hazards like this.
     flushPassiveEffects();
   } while (rootWithPendingPassiveEffects !== null);
+    // 개발환경에서 실행되는 함수
   flushRenderPhaseStrictModeWarningsInDEV();
 
   if ((executionContext & (RenderContext | CommitContext)) !== NoContext) {
@@ -3068,6 +3069,9 @@ function commitRootImpl(
     // This indicates that the last root we worked on is not the same one that
     // we're committing now. This most commonly happens when a suspended root
     // times out.
+    // 이는 우리가 마지막으로 작업한 루트가 다음과 동일하지 않다는 것을 나타냅니다
+// 우리는 지금 약속하고 있습니다. 이는 가장 일반적으로 매달린 뿌리에서 발생합니다
+// 시간 초과.
   }
 
   // If there are pending passive effects, schedule a callback to process them.
@@ -3075,6 +3079,11 @@ function commitRootImpl(
   // might get scheduled in the commit phase. (See #16714.)
   // TODO: Delete all other places that schedule the passive effect callback
   // They're redundant.
+  // 보류 중인 패시브 효과가 있는 경우 콜백을 예약하여 처리합니다.
+// 가능한 한 빨리 이 작업을 수행하여 다른 작업보다 먼저 대기열에 넣습니다
+// 커밋 단계에서 예약될 수 있습니다. (#16714 참조)
+// TODO: 수동 효과 콜백을 예약하는 다른 모든 플레이스 삭제
+// 중복성이 있습니다.
   if (
     // If this subtree rendered with profiling this commit, we need to visit it to log it.
     (enableProfilerTimer &&
@@ -3083,22 +3092,23 @@ function commitRootImpl(
     (finishedWork.subtreeFlags & PassiveMask) !== NoFlags ||
     (finishedWork.flags & PassiveMask) !== NoFlags
   ) {
+    // 핵심 코드
     if (!rootDoesHavePassiveEffects) {
       rootDoesHavePassiveEffects = true;
       pendingPassiveEffectsRemainingLanes = remainingLanes;
       pendingPassiveEffectsRenderEndTime = completedRenderEndTime;
-      // workInProgressTransitions might be overwritten, so we want
-      // to store it in pendingPassiveTransitions until they get processed
-      // We need to pass this through as an argument to commitRoot
-      // because workInProgressTransitions might have changed between
-      // the previous render and commit if we throttle the commit
-      // with setTimeout
+      // workInProgressTransitions가 덮어쓸 수 있으므로 다음을 원합니다
+// 처리될 때까지 보류 중인 패시브 트랜지션에 저장하기
+// 이를 인수로 전달하여 Root를 커밋해야 합니다
+// workInProgressTransitions 사이에 변경되었을 수 있기 때문입니다
+// 커밋을 조절하는 경우 이전 렌더링 및 커밋
+// setTimeout 사용
       pendingPassiveTransitions = transitions;
       scheduleCallback(NormalSchedulerPriority, () => {
         flushPassiveEffects(true);
-        // This render triggered passive effects: release the root cache pool
-        // *after* passive effects fire to avoid freeing a cache pool that may
-        // be referenced by a node in the tree (HostRoot, Cache boundary etc)
+        // 이 렌더링은 수동 효과를 트리거했습니다: 루트 캐시 풀 해제
+// *애프터* 패시브 이펙트는 다음과 같은 가능성이 있는 캐시 풀을 제거하지 않기 위해 발사됩니다
+// 트리의 노드(HostRoot, 캐시 경계 등)에서 참조할 수 있습니다
         return null;
       });
     }
@@ -3463,11 +3473,13 @@ export function flushPassiveEffects(wasDelayedCommit?: boolean): boolean {
 }
 
 function flushPassiveEffectsImpl(wasDelayedCommit: void | boolean) {
+  // rootWithPendingPassiveEffects가 없으면 동작할 이유가 없다.
   if (rootWithPendingPassiveEffects === null) {
     return false;
   }
 
-  // Cache and clear the transitions flag
+  // 이전의 commitRoot에서 할당된 pendingPassiveTransitions 값을 재사
+  // const로 선언해 변수 수정 하지 말라고 권고
   const transitions = pendingPassiveTransitions;
   pendingPassiveTransitions = null;
 
@@ -3508,9 +3520,12 @@ function flushPassiveEffectsImpl(wasDelayedCommit: void | boolean) {
     markPassiveEffectsStarted(lanes);
   }
 
+// 실행 context 정보에 대한 값도 할당시킨다.
   const prevExecutionContext = executionContext;
+    // Fiber 노드를 사용하기 위한 비트연산자 처리
   executionContext |= CommitContext;
-
+// 실제 돌아가는 핵심 로직 (중요)
+	// unmount가 먼저 실행되고, 그 이후 mount가 실행되는 것이 특징
   commitPassiveUnmountEffects(root.current);
   commitPassiveMountEffects(
     root,

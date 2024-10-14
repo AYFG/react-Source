@@ -215,15 +215,16 @@ export type Hook = {
 // the additional memory and we can follow up with performance
 // optimizations later.
 type EffectInstance = {
-  destroy: void | (() => void),
+  // useEffect에서 사용하는 unmount시 처리하기 위한 return 함수가 들어간다 생각하면 좋다.
+  destroy: void | (() => void)
 };
 
 export type Effect = {
-  tag: HookFlags,
-  create: () => (() => void) | void,
-  inst: EffectInstance,
-  deps: Array<mixed> | null,
-  next: Effect,
+  tag: HookFlags, // 순서를 정하는 lane number가 들어감. 당장 알 필요는 없다.
+  create: () => (() => void) | void, // mount or update 시 실행할 callback 함수
+  inst: EffectInstance, // useEffect 제거 시 발생하는 return 함수
+  deps: Array<mixed> | null, // dependency array
+  next: Effect, // 다음 effect를 넣어주는 공간 (circular queue를 위함)
 };
 
 type StoreInstance<T> = {
@@ -462,6 +463,7 @@ function areHookInputsEqual(
 
   if (prevDeps === null) {
     if (__DEV__) {
+     
       console.error(
         '%s received a final argument during this render, but not during ' +
           'the previous render. Even though the final argument is optional, ' +
@@ -473,8 +475,8 @@ function areHookInputsEqual(
   }
 
   if (__DEV__) {
-    // Don't bother comparing lengths in prod because these arrays should be
-    // passed inline.
+     // Production 환경에서는 해당 비교문은 불필요하다. 코드 안에서만 직접적으로
+    // 전달할 수 있기 때문이다.
     if (nextDeps.length !== prevDeps.length) {
       console.error(
         'The final argument passed to %s changed size between renders. The ' +
@@ -2516,6 +2518,7 @@ function pushEffect(
     // Circular
     next: (null: any),
   };
+  // 업데이트를 위해 queue 에 넣어줘 순서를 대기시켜 준다
   let componentUpdateQueue: null | FunctionComponentUpdateQueue =
     (currentlyRenderingFiber.updateQueue: any);
   if (componentUpdateQueue === null) {
@@ -2559,6 +2562,7 @@ function mountEffectImpl(
   const hook = mountWorkInProgressHook();
   const nextDeps = deps === undefined ? null : deps;
   currentlyRenderingFiber.flags |= fiberFlags;
+
   hook.memoizedState = pushEffect(
     HookHasEffect | hookFlags,
     create,
@@ -2575,11 +2579,14 @@ function updateEffectImpl(
 ): void {
   const hook = updateWorkInProgressHook();
   const nextDeps = deps === undefined ? null : deps;
+  // parameter로 받은 deps가 undefined 인 경우에 null 즉 값이 없음을 나타내고
+// undefined가 아니라면 deps로 반환하는 것, 자세한 내막은 잘 모르지만
+// React는 값이 없음에 대해 null로 체크해서 그런 것 으로 보인다.
   const effect: Effect = hook.memoizedState;
   const inst = effect.inst;
 
-  // currentHook is null on initial mount when rerendering after a render phase
-  // state update or for strict mode.
+// currentHook은 처음 렌더링(mount) 시점이거나, 렌더링 중 상태(state)가 변경되거나
+// strict mode가 활성화 되어있다면 null이 될 수 있다.
   if (currentHook !== null) {
     if (nextDeps !== null) {
       const prevEffect: Effect = currentHook.memoizedState;

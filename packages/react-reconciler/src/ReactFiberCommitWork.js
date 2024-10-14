@@ -317,6 +317,7 @@ function commitBeforeMutationEffectsOnFiber(finishedWork: Fiber) {
     case FunctionComponent: {
       if (enableUseEffectEventHook) {
         if ((flags & Update) !== NoFlags) {
+           // 새로운 값을 read-only로 사용하기 위해 임의의 변수 할당 및 지정
           const updateQueue: FunctionComponentUpdateQueue | null =
             (finishedWork.updateQueue: any);
           const eventPayloads =
@@ -3367,6 +3368,9 @@ function commitPassiveUnmountOnFiber(finishedWork: Fiber): void {
   const prevEffectStart = pushComponentEffectStart();
 
   switch (finishedWork.tag) {
+      // 밑에 케이스가 더 존재하나, 현재 자주 사용하게 되는 함수형 컴포넌트 
+        // forwardRef로 선언된 컴포넌트들에 대한 처리만 보여줘도 무방해 최상단 케이스만
+        // 해당 문서에 기록해둔다.
     case FunctionComponent:
     case ForwardRef:
     case SimpleMemoComponent: {

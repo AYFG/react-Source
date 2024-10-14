@@ -158,6 +158,9 @@ export function commitHookEffectListMount(
           } else {
             const create = effect.create;
             const inst = effect.inst;
+            // destroy는 create()함수의 결과물 즉 return 함수를 반환하게 된다.
+          // 즉 우리가 평소에 사용하는 cleanup() 함수를 mount 시 반영하는 작업을
+          // 수행한다고 할 수 있다.
             destroy = create();
             inst.destroy = destroy;
           }
@@ -221,6 +224,8 @@ export function commitHookEffectListMount(
             }
           }
         }
+        // unmount와 동일하게 effect list 객체 내부에서 동일한 작업은 한번에 수행하는
+        // 과정을 거치게 된다. 
         effect = effect.next;
       } while (effect !== firstEffect);
     }
@@ -235,8 +240,10 @@ export function commitHookEffectListUnmount(
   nearestMountedAncestor: Fiber | null,
 ) {
   try {
+    // 새로운 값을 read-only로 사용하기 위해 임의의 변수 할당 및 지정
     const updateQueue: FunctionComponentUpdateQueue | null =
       (finishedWork.updateQueue: any);
+      // 마지막에 실행할 effect 작업인 lastEffect 객체의 유무 확인
     const lastEffect = updateQueue !== null ? updateQueue.lastEffect : null;
     if (lastEffect !== null) {
       const firstEffect = lastEffect.next;
@@ -245,8 +252,12 @@ export function commitHookEffectListUnmount(
         if ((effect.tag & flags) === flags) {
           // Unmount
           const inst = effect.inst;
+           // hook 객체의 mount나 update시에는 undefined 로 할당되어 있으나,
+          // 추후 별개의 작업을 통해 destroy에 함수 값이 들어가게 되는 경
+          // 해당 destroy 함수를 실행하게 한다.
           const destroy = inst.destroy;
           if (destroy !== undefined) {
+            // 실제로 사용하는 객체인 destroy 값은 비워준다.
             inst.destroy = undefined;
             if (enableSchedulingProfiler) {
               if ((flags & HookPassive) !== NoHookEffect) {
@@ -261,6 +272,8 @@ export function commitHookEffectListUnmount(
                 setIsRunningInsertionEffect(true);
               }
             }
+             // destroy 함수는 이미 이전의 inst.destroy 함수 메모리 주소를 가지고
+            // 있기 때문에 safelyCallDestroy 함수를 통해 호출하게 된다
             safelyCallDestroy(finishedWork, nearestMountedAncestor, destroy);
             if (__DEV__) {
               if ((flags & HookInsertion) !== NoHookEffect) {
@@ -277,6 +290,8 @@ export function commitHookEffectListUnmount(
             }
           }
         }
+        // 맨 처음에 동작하기로한 effect랑 새로 할당한 effect랑 다른 값을 가지고 있는
+        // 확인하는 로직으로 동일한 작업은 한번에 반복해서 처리하겠다는 것을 알림
         effect = effect.next;
       } while (effect !== firstEffect);
     }
@@ -889,6 +904,7 @@ function safelyCallDestroy(
     );
   } else {
     try {
+      // 실제로 해당 함수에서는 개발환경에 대한 예외처리만 존재한다.
       destroy();
     } catch (error) {
       captureCommitPhaseError(current, nearestMountedAncestor, error);

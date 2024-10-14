@@ -426,6 +426,11 @@ function unstable_getFirstCallbackNode(): Task | null {
   return peek(taskQueue);
 }
 
+// 여기서 비동기 함수를 이용해 몇 가지를 실행한다.
+// 1. localSetImmediate (JS runtime환경에 setImmediate가 있으면 실행시킴)
+//      setImmediate는 현재 브라우저에서는 지원되지 않음. (없는 상태)
+// 2. MessageChannel (JS runtime 환경에서 messageChannel API가 있으면 실행시킴)
+// 3. localSetTimeout (JS runtime환경에 setTimeout가 있으면 실행시킴)
 function unstable_cancelCallback(task: Task) {
   if (enableProfiling) {
     if (task.isQueued) {
